@@ -1,0 +1,65 @@
+---
+title: "RStudio Table Contest 2021 - Sam's Entry"
+author: "@parmsam"
+date: "10/15/2021"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+
+
+# Load Libraries
+```{r libraries, message=FALSE}
+#load libraries ----
+library(dplyr)
+library(tibble)
+library(reactable)
+library(crosstalk)
+library(DT)
+library(d3scatter)
+```
+
+# Load Dataset
+```{r dataset, message=FALSE}
+#define dataset ----
+mtcars2 <- mtcars %>% tibble::rownames_to_column("mfr")
+shared_mtcars <- SharedData$new(mtcars2)
+```
+
+# Setup Crosstalk
+```{r, crosstalk1, eval=FALSE}
+#setup crosstalk widgets ----
+bscols(widths = c(3,6,9),
+       list(
+         filter_checkbox("cyl", "Cylinders", shared_mtcars, ~cyl, inline = TRUE),
+         filter_slider("hp", "Horsepower", shared_mtcars, ~hp, width = "100%"),
+         filter_select("mfr", "Manufacturer", shared_mtcars, ~unique(mtcars2$mfr)),
+         filter_select("auto", "Automatic", shared_mtcars, ~ifelse(am == 0, "Yes", "No"))
+       ),
+       list(
+        d3scatter(shared_mtcars, ~wt, ~mpg, ~factor(cyl), width="100%", height=200),
+        d3scatter(shared_mtcars, ~hp, ~qsec, ~factor(cyl), width="100%", height=200)
+       ),
+       reactable(shared_mtcars, searchable = TRUE, minRows = 3, defaultPageSize = 5,
+                 resizable = TRUE, 
+                 highlight = TRUE, 
+                 selection = "multiple")
+       # DT::datatable(shared_mtcars)
+)
+```
+
+# Interactive table
+```{r, crosstalk1, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```
+
+
