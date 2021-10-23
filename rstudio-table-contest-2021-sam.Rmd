@@ -19,42 +19,69 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 # Load Libraries
-```{r libraries, message=FALSE}
+```{r libraries, message=FALSE, warning=FALSE}
 #load libraries ----
 library(dplyr)
 library(tibble)
 library(reactable)
 library(crosstalk)
 library(DT)
+library(gt)
 library(d3scatter)
+library(htmltools)
+library(tippy)
 ```
 
 # Load Dataset
 ```{r dataset, message=FALSE}
 #define dataset ----
-mtcars2 <- mtcars %>% tibble::rownames_to_column("mfr")
-shared_mtcars <- SharedData$new(mtcars2)
+# mtcars2 <- mtcars %>% tibble::rownames_to_column("model")
+data <- SharedData$new(gtcars)
+```
+
+# Helper functions
+```{r helper-functions, message=FALSE, warning=FALSE}
+with_tooltip <- function(value, tooltip, ...) {
+  div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+      tippy(value, tooltip, ...))
+}
 ```
 
 # Setup Crosstalk
 ```{r, crosstalk1, eval=FALSE}
 #setup crosstalk widgets ----
-bscols(widths = c(3,6,9),
+bscols(widths = c(4,8,12),
        list(
-         filter_checkbox("cyl", "Cylinders", shared_mtcars, ~cyl, inline = TRUE),
-         filter_slider("hp", "Horsepower", shared_mtcars, ~hp, width = "100%"),
-         filter_select("mfr", "Manufacturer", shared_mtcars, ~unique(mtcars2$mfr)),
-         filter_select("auto", "Automatic", shared_mtcars, ~ifelse(am == 0, "Yes", "No"))
+         filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE),
+         filter_slider("hp", "Horsepower", data, ~hp, width = "100%"),
+         filter_slider("year", "Year", data, ~year, width = "100%"),
+         filter_select("model", "Model", data, ~unique(gtcars$model)),
+         filter_select("mfr", "Manufacturer", data, ~unique(gtcars$mfr))
        ),
        list(
-        d3scatter(shared_mtcars, ~wt, ~mpg, ~factor(cyl), width="100%", height=200),
-        d3scatter(shared_mtcars, ~hp, ~qsec, ~factor(cyl), width="100%", height=200)
+        d3scatter(data, ~hp, ~mpg_c, ~factor(bdy_style), width="100%", height=200),
+        d3scatter(data, ~trq, ~mpg_h, ~factor(bdy_style), width="100%", height=200)
        ),
-       reactable(shared_mtcars, searchable = TRUE, minRows = 3, defaultPageSize = 5,
-                 resizable = TRUE, 
-                 highlight = TRUE, 
-                 selection = "multiple")
-       # DT::datatable(shared_mtcars)
+       reactable(data, searchable = TRUE, minRows = 3, defaultPageSize = 5,
+                 resizable = TRUE, highlight = TRUE, 
+                 selection = "multiple",
+                 bordered = TRUE,
+                 columns = list(
+                      mfr = colDef(header=with_tooltip("mfr", "Manufacturer")),
+                      model = colDef(header= with_tooltip("model",	"Model name")),
+                      year = colDef(header= with_tooltip("year",	"Model year")),
+                      trim = colDef(header= with_tooltip("trim",	"Dscription of the car model's trim")),
+                      bdy_style = colDef(header= with_tooltip("bdy_style",	"Body style")),
+                      hp = colDef(header= with_tooltip("hp",	"Horsepower")),
+                      trq = colDef(header= with_tooltip("trq",	"Torque")),
+                      mpg_c = colDef(header= with_tooltip("mpg_c",	"Miles per gallon fuel efficiency city")),
+                      mpg_h = colDef(header= with_tooltip("mpg_h",	"Miles per gallon fuel efficiency highway")),
+                      drivetrain = colDef(header= with_tooltip("drivetrain",	"Car's drivetrain")),
+                      trsmn = colDef(header= with_tooltip("trsmn",	"Codified transmission type")),
+                      ctry_origin = colDef(header= with_tooltip("ctry_origin",	"Vehicle manufacturer headquarter country name"))
+                 )
+       )
+       # DT::datatable(data)
 )
 ```
 
