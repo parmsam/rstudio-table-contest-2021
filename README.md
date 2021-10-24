@@ -14,3 +14,10 @@
 * htmltools
 * tippy
 * summarywidget
+
+# Helpful resources
+* https://glin.github.io/reactable/articles/examples.html
+* https://glin.github.io/reactable/articles/cookbook/cookbook.html
+* https://rstudio.github.io/crosstalk/using.html
+* https://kent37.github.io/summarywidget/using.html
+
