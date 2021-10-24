@@ -1,11 +1,12 @@
 ---
-title: "RStudio Table Contest 2021 - crosstalk + reactable with cars"
+title: "RStudio Table Contest 2021 - Sam's Entry "
+subtitle: "an interactive table using crosstalk + reactable on the gtcars dataset"
 author: "github/parmsam"
 date: "10/15/2021"
 output:
   html_document:
-    code_folding: show
-    toc: true
+    code_folding: hide
+    toc: false
     toc_float:
       collapsed: false
       smooth_scroll: true
@@ -14,10 +15,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Setup
+<!-- # Setup -->
 
-## Load libraries
-```{r libraries, message=FALSE, warning=FALSE}
+<!-- ## Load libraries -->
+```{r libraries, message=FALSE, warning=FALSE, include = FALSE}
 #load libraries ----
 library(dplyr)
 library(stringr)
@@ -36,8 +37,8 @@ library(d3scatter)
 library(summarywidget)
 ```
 
-## Pre-process dataset
-```{r dataset, message=FALSE}
+<!-- ## Pre-process dataset -->
+```{r dataset, message=FALSE, include = FALSE}
 #define dataset ----
 # specify order of interest
 gtcars_mod <- gt::gtcars %>% 
@@ -50,8 +51,8 @@ gtcars_mod <- gt::gtcars %>%
 data <- SharedData$new(gtcars_mod) 
 ```
 
-## Helper functions and themes
-```{r helper-functions, message=FALSE, warning=FALSE}
+<!-- ## Helper functions and themes -->
+```{r helper-functions, message=FALSE, warning=FALSE, include = FALSE}
 with_tooltip <- function(value, tooltip, ...) {
   div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
       tippy(value, tooltip, ...))
@@ -158,8 +159,6 @@ bscols(widths = c(4,8,12, 12),
        # DT::datatable(data)
 )
 ```
-
-# Interactive table
 
 <!-- # Setup Crosstalk -->
 <!-- You have selected `r summarywidget(data, statistic = 'count')` car -->
