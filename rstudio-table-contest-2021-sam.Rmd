@@ -17,6 +17,50 @@ knitr::opts_chunk$set(echo = TRUE)
 
 <!-- # Setup -->
 
+<!-- ## Declare custom css -->
+```{css, echo=FALSE}
+.tag {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.bdy_style-convertible {
+  background: hsl(203, 60%, 90%);
+  color: hsl(203, 30%, 25%);
+}
+
+.bdy_style-coupe {
+  background: hsl(30, 70%, 90%);
+  color: hsl(30, 45%, 30%);
+}
+
+.bdy_style-hatchback {
+  background: hsl(118, 70%, 90%);
+  color: hsl(118, 45%, 30%);
+}
+
+.bdy_style-sedan {
+  background: hsl(357, 70%, 90%);
+  color: hsl(357, 45%, 30%);
+}
+
+.drivetrain-rwd{
+  background: hsl(50, 70%, 90%);
+  color: hsl(50, 45%, 30%);
+}
+
+.drivetrain-awd{
+  background: hsl(320, 70%, 90%);
+  color: hsl(320, 45%, 30%);
+}
+
+
+```
+
+
 <!-- ## Load libraries -->
 ```{r libraries, message=FALSE, warning=FALSE, include = FALSE}
 #load libraries ----
@@ -58,6 +102,28 @@ with_tooltip <- function(value, tooltip, ...) {
       tippy(value, tooltip, ...))
 }
 
+rating_msrp <- function(dollar_value, max_msrp = max(gtcars_mod$msrp)) {
+  dollar_icon <- function(empty = FALSE) {
+    tagAppendAttributes(shiny::icon("money-bill-wave"),
+      style = paste("color:", if (empty) "#edf0f2" else "green"),
+      "aria-hidden" = "true"
+    )
+  }
+  rounded_rating <- floor(dollar_value + 0.5)  # always round up
+  dollars <- lapply(seq(0,max_msrp, (max_msrp-0)/(5-1)), function(i) {
+    if (i <= rounded_rating) dollar_icon() else dollar_icon(empty = TRUE)
+  })
+  label <- sprintf("%s out of %s dollars", scales::dollar(dollar_value), scales::dollar(max_msrp))
+  div(title = label, role = "img", dollars)
+}
+
+# Render a bar chart with a label on the left
+bar_chart <- function(label, width = "100%", height = "16px", fill = "#00bfc4", background = NULL) {
+  bar <- div(style = list(background = fill, width = width, height = height))
+  chart <- div(style = list(flexGrow = 1, marginLeft = "8px", background = background), bar)
+  div(style = list(display = "flex", alignItems = "center"), label, chart)
+}
+
 example_theme <- reactableTheme(
     rowSelectedStyle = list(backgroundColor = "#ADD8E6", boxShadow = "inset 2px 0 0 0 #ffa62d"),
     borderColor = "#dfe2e5",
@@ -70,20 +136,20 @@ example_theme <- reactableTheme(
 
 ```
 
-
 ```{r, crosstalk1, eval=FALSE}
 #setup crosstalk widgets ----
-bscols(widths = c(4,8,12, 12),
+bscols(widths = c(3, 8, 12, 12),
        list(
          filter_select("mfr", "Manufacturer", data, ~unique(gtcars$mfr)),
          filter_select("model", "Model", data, ~unique(gtcars$model)),
-         filter_slider("year", "Year", data, ~year, width = "100%", sep="", animate=FALSE),
-         filter_slider("hp", "Horsepower", data, ~hp, width = "100%"),
-         filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE)
+         filter_slider("year", "Year", data, ~year, width = "80%", sep = "", animate=FALSE),
+         filter_slider("hp", "Horsepower", data, ~hp, width = "90%"),
+         filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE),
+         filter_slider("msrp", "MSRP", data, ~msrp, width = "100%",pre = "$")
          ),
        list(
-        d3scatter(data, ~hp, ~mpg_c, ~factor(bdy_style), width="100%", height=200),
-        d3scatter(data, ~hp, ~msrp, ~factor(bdy_style), width="100%", height=200)
+        d3scatter(data, ~hp, ~mpg_h, ~factor(bdy_style), width="100%", height=250),
+        d3scatter(data, ~hp, ~mpg_c, ~factor(bdy_style), width="100%", height=250)
        ),
        reactable(data, searchable = TRUE, minRows = 3, 
                  showPageSizeOptions = TRUE,
@@ -113,21 +179,50 @@ bscols(widths = c(4,8,12, 12),
                      model = colDef(show = FALSE),
                       # mfr = colDef(header=with_tooltip("mfr", "Manufacturer")),
                       # model = colDef(header= with_tooltip("model",	"Model name")),
-                      year = colDef(header= with_tooltip("year",	"Model year")),
-                      trim = colDef(header= with_tooltip("trim",	"Dscription of the car model's trim")),
-                      bdy_style = colDef(header= with_tooltip("bdy_style",	"Body style")),
-                      hp = colDef(header= with_tooltip("hp",	"Horsepower")),
+                      year = colDef(header= with_tooltip("year",	"Model year"), minWidth = 60),
+                      trim = colDef(header= with_tooltip("trim",	"Dscription of the car model's trim"),
+                                    style = list(fontWeight = 600)
+                                    ),
+                      bdy_style = colDef(header= with_tooltip("bdy_style",	"Body style"),
+                                         minWidth = 115,
+                                         cell = function(value) {
+                                           class <- paste0("tag bdy_style-", tolower(value))
+                                           div(class = class, value)
+                                         }
+                     ),
+                      hp = colDef(header= with_tooltip("hp",	"Horsepower"),
+                                  cell = function(value) {
+                                    width <- paste0(value / max(gtcars_mod$hp, na.rm=TRUE) * 100, "%")
+                                    bar_chart(value, width = width, fill = "#A0522D", background = "#e1e1e1")
+                                    }),
                       hp_rpm = colDef(header= with_tooltip("hp_rpm",	"Horsepower RPM level"), format=colFormat(separators = TRUE) ),
-                      trq = colDef(header= with_tooltip("trq",	"Torque")),
+                      trq = colDef(header= with_tooltip("trq",	"Torque"),
+                                   cell = function(value) {
+                                    width <- paste0(value / max(gtcars_mod$trq, na.rm=TRUE) * 100, "%")
+                                    bar_chart(value, width = width, fill = "#DDA0DD", background = "#e1e1e1")
+                                    }),
                       trq_rpm = colDef(header= with_tooltip("trq_rpm",	"Torque RPM level"), format=colFormat(separators = TRUE) ),
-                      mpg_c = colDef(header= with_tooltip("mpg_c",	"Miles per gallon fuel efficiency city")),
-                      mpg_h = colDef(header= with_tooltip("mpg_h",	"Miles per gallon fuel efficiency highway")),
-                      drivetrain = colDef(header= with_tooltip("drivetrain",	"Car's drivetrain")),
+                      mpg_c = colDef(header= with_tooltip("mpg_c",	"Miles per gallon fuel efficiency city"),
+                                     cell = function(value) {
+                                       width <- paste0(value / max(gtcars_mod$mpg_c, na.rm=TRUE) * 100, "%")
+                                       bar_chart(value, width = width, background = "#e1e1e1")
+                                       }),
+                      mpg_h = colDef(header= with_tooltip("mpg_h",	"Miles per gallon fuel efficiency highway"),
+                                     cell = function(value) {
+                                       width <- paste0(value / max(gtcars_mod$mpg_h, na.rm=TRUE) * 100, "%")
+                                       bar_chart(value, width = width, fill = "#fc5185", background = "#e1e1e1")
+                                       }),
+                      drivetrain = colDef(header= with_tooltip("drivetrain",	"Car's drivetrain"),
+                                     cell = function(value) {
+                                           class <- paste0("tag drivetrain-", tolower(value))
+                                           div(class = class, value)
+                                         }),
                       trsmn = colDef(header= with_tooltip("trsmn",	"Codified transmission type")),
                       ctry_origin = colDef(
                           header = with_tooltip("ctry_origin",	"Vehicle manufacturer's headquarter country"),
                           headerStyle = list(fontWeight = 700),
                           minWidth = 200,
+                          style = list(fontWeight = 600),
                           class = "cell",
                           cell = function(value, index) {
                               img_src <- stringr::str_c('https://cdn.countryflags.com/thumbs/',
@@ -142,19 +237,14 @@ bscols(widths = c(4,8,12, 12),
                                   div(class = "country-name", value)
                                   )
                           }),
-                       Team = colDef(
-                          header = with_tooltip("ctry_origin",	"Vehicle manufacturer headquarter country name"),
-                          minWidth = 200,
-                          headerStyle = list(fontWeight = 700),
-                          class = "cell",
-
-                        ), 
-                     msrp = colDef(header = with_tooltip("msrp",	"Car prices in USD"), 
+                      msrp = colDef(header = with_tooltip("msrp",	"Car prices in USD"), 
                                    format = colFormat(separators = TRUE, digits = 0, prefix = "$"), 
-                                   footer = function(values) scales::dollar(sum(values) ) 
+                                   minWidth = 120,
+                                   cell = function(value) div(scales::dollar(value), rating_msrp(value), width = "100%"),
+                                   footer = function(values) scales::dollar(sum(values) )
                                    )
                  ),
-                 defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+                 defaultColDef = colDef(footerStyle = list(fontWeight = "bold"),)
        )
        # DT::datatable(data)
 )
@@ -166,5 +256,4 @@ bscols(widths = c(4,8,12, 12),
 
 ```{r, crosstalk1, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 ```
-
 
