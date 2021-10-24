@@ -1,6 +1,6 @@
 ---
-title: "RStudio Table Contest 2021 - Sam's Entry"
-author: "@parmsam"
+title: "RStudio Table Contest 2021 - crosstalk + reactable with cars"
+author: "github/parmsam"
 date: "10/15/2021"
 output:
   html_document:
@@ -8,84 +8,163 @@ output:
     toc: true
     toc_float:
       collapsed: false
-      smooth_scroll: false
+      smooth_scroll: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Background
+# Setup
 
-
-
-# Load Libraries
+## Load libraries
 ```{r libraries, message=FALSE, warning=FALSE}
 #load libraries ----
 library(dplyr)
+library(stringr)
 library(tibble)
 library(reactable)
 library(crosstalk)
 library(DT)
 library(gt)
-library(d3scatter)
+library(scales)
 library(htmltools)
 library(tippy)
+#installed from Github using devtools 
+# devtools::install_github("jcheng5/d3scatter")
+# devtools::install_github("kent37/summarywidget")
+library(d3scatter)
+library(summarywidget)
 ```
 
-# Load Dataset
+## Pre-process dataset
 ```{r dataset, message=FALSE}
 #define dataset ----
-# mtcars2 <- mtcars %>% tibble::rownames_to_column("model")
-data <- SharedData$new(gtcars)
+# specify order of interest
+gtcars_mod <- gt::gtcars %>% 
+  dplyr::relocate(msrp, .after = year) %>%
+  dplyr::relocate(ctry_origin, .after = year) %>%
+  dplyr::relocate(bdy_style, .after = msrp) %>%
+  dplyr::relocate(drivetrain, .after = bdy_style) %>%
+  dplyr::relocate(trsmn, .after = drivetrain) %>%
+  mutate(ctry_origin = ifelse(ctry_origin == "United States", "United States of America", ctry_origin))
+data <- SharedData$new(gtcars_mod) 
 ```
 
-# Helper functions
+## Helper functions and themes
 ```{r helper-functions, message=FALSE, warning=FALSE}
 with_tooltip <- function(value, tooltip, ...) {
   div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
       tippy(value, tooltip, ...))
 }
+
+example_theme <- reactableTheme(
+    rowSelectedStyle = list(backgroundColor = "#ADD8E6", boxShadow = "inset 2px 0 0 0 #ffa62d"),
+    borderColor = "#dfe2e5",
+    stripedColor = "#f6f8fa",
+    highlightColor = "#ADD8E6",
+    cellPadding = "8px 12px",
+    style = list(fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif"),
+    searchInputStyle = list(width = "100%")
+)
+
 ```
 
-# Setup Crosstalk
+
 ```{r, crosstalk1, eval=FALSE}
 #setup crosstalk widgets ----
-bscols(widths = c(4,8,12),
+bscols(widths = c(4,8,12, 12),
        list(
-         filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE),
-         filter_slider("hp", "Horsepower", data, ~hp, width = "100%"),
-         filter_slider("year", "Year", data, ~year, width = "100%"),
+         filter_select("mfr", "Manufacturer", data, ~unique(gtcars$mfr)),
          filter_select("model", "Model", data, ~unique(gtcars$model)),
-         filter_select("mfr", "Manufacturer", data, ~unique(gtcars$mfr))
-       ),
+         filter_slider("year", "Year", data, ~year, width = "100%", sep="", animate=FALSE),
+         filter_slider("hp", "Horsepower", data, ~hp, width = "100%"),
+         filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE)
+         ),
        list(
         d3scatter(data, ~hp, ~mpg_c, ~factor(bdy_style), width="100%", height=200),
-        d3scatter(data, ~trq, ~mpg_h, ~factor(bdy_style), width="100%", height=200)
+        d3scatter(data, ~hp, ~msrp, ~factor(bdy_style), width="100%", height=200)
        ),
-       reactable(data, searchable = TRUE, minRows = 3, defaultPageSize = 5,
+       reactable(data, searchable = TRUE, minRows = 3, 
+                 showPageSizeOptions = TRUE,
+                 pageSizeOptions = c(5, 10, 15),
+                 defaultPageSize = 5,
                  resizable = TRUE, highlight = TRUE, 
                  selection = "multiple",
+                 onClick = "select",
+                 theme = example_theme,
                  bordered = TRUE,
+                 striped = TRUE,
+                 filterable = TRUE,
                  columns = list(
-                      mfr = colDef(header=with_tooltip("mfr", "Manufacturer")),
-                      model = colDef(header= with_tooltip("model",	"Model name")),
+                       mfr = colDef(
+                        # Show species under character names
+                        cell = JS("function(cellInfo) {
+                          var model = cellInfo.row['model'] || 'Unknown'
+                          return (
+                            '<div>' +
+                            '<div style=\"font-weight: 600\">' + cellInfo.value + '</div>' +
+                            '<div style=\"font-size: 12px\">' + model + '</div>' +
+                            '</div>'
+                          )
+                        }"), header=with_tooltip("mfr", "Manufacturer/model name"),
+                        footer = "Total",
+                        html = TRUE),
+                     model = colDef(show = FALSE),
+                      # mfr = colDef(header=with_tooltip("mfr", "Manufacturer")),
+                      # model = colDef(header= with_tooltip("model",	"Model name")),
                       year = colDef(header= with_tooltip("year",	"Model year")),
                       trim = colDef(header= with_tooltip("trim",	"Dscription of the car model's trim")),
                       bdy_style = colDef(header= with_tooltip("bdy_style",	"Body style")),
                       hp = colDef(header= with_tooltip("hp",	"Horsepower")),
+                      hp_rpm = colDef(header= with_tooltip("hp_rpm",	"Horsepower RPM level"), format=colFormat(separators = TRUE) ),
                       trq = colDef(header= with_tooltip("trq",	"Torque")),
+                      trq_rpm = colDef(header= with_tooltip("trq_rpm",	"Torque RPM level"), format=colFormat(separators = TRUE) ),
                       mpg_c = colDef(header= with_tooltip("mpg_c",	"Miles per gallon fuel efficiency city")),
                       mpg_h = colDef(header= with_tooltip("mpg_h",	"Miles per gallon fuel efficiency highway")),
                       drivetrain = colDef(header= with_tooltip("drivetrain",	"Car's drivetrain")),
                       trsmn = colDef(header= with_tooltip("trsmn",	"Codified transmission type")),
-                      ctry_origin = colDef(header= with_tooltip("ctry_origin",	"Vehicle manufacturer headquarter country name"))
-                 )
+                      ctry_origin = colDef(
+                          header = with_tooltip("ctry_origin",	"Vehicle manufacturer's headquarter country"),
+                          headerStyle = list(fontWeight = 700),
+                          minWidth = 200,
+                          class = "cell",
+                          cell = function(value, index) {
+                              img_src <- stringr::str_c('https://cdn.countryflags.com/thumbs/',
+                                               stringr::str_replace_all(stringr::str_to_lower(value)," ","-"), '/flag-800.png')
+                              image <- img(class = "logo",
+                                         src = img_src,
+                                         height = 20,
+                                         width = 35,
+                                         alt = value)
+                              div(class = "country", 
+                                  image,
+                                  div(class = "country-name", value)
+                                  )
+                          }),
+                       Team = colDef(
+                          header = with_tooltip("ctry_origin",	"Vehicle manufacturer headquarter country name"),
+                          minWidth = 200,
+                          headerStyle = list(fontWeight = 700),
+                          class = "cell",
+
+                        ), 
+                     msrp = colDef(header = with_tooltip("msrp",	"Car prices in USD"), 
+                                   format = colFormat(separators = TRUE, digits = 0, prefix = "$"), 
+                                   footer = function(values) scales::dollar(sum(values) ) 
+                                   )
+                 ),
+                 defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
        )
        # DT::datatable(data)
 )
 ```
 
 # Interactive table
+
+<!-- # Setup Crosstalk -->
+<!-- You have selected `r summarywidget(data, statistic = 'count')` car -->
+<!-- with an average horsepower of **`r summarywidget(data, 'mean', 'hp', digits=1)`** , an average city mpg of **`r summarywidget(data, 'mean', 'mpg_c', digits=1)`** , and an average highway mpg of **`r summarywidget(data, 'mean', 'mpg_h', digits=1)`** -->
+
 ```{r, crosstalk1, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 ```
 
