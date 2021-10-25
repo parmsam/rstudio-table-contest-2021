@@ -16,8 +16,13 @@
 * summarywidget
 
 # Helpful resources
+
+## Reactable
 * https://glin.github.io/reactable/articles/examples.html
 * https://glin.github.io/reactable/articles/cookbook/cookbook.html
+* https://kcuilla.github.io/reactablefmtr/articles/icon_sets.html
+
+## Crosstalk
 * https://rstudio.github.io/crosstalk/using.html
 * https://kent37.github.io/summarywidget/using.html
 

@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 <!-- # Setup -->
 
 <!-- ## Declare custom css -->
-```{css, echo=FALSE}
+```{css custom-css, echo=FALSE, include = TRUE}
 .tag {
   display: inline-block;
   padding: 2px 12px;
@@ -62,7 +62,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 <!-- ## Load libraries -->
-```{r libraries, message=FALSE, warning=FALSE, include = FALSE}
+```{r libraries, message=FALSE, warning=FALSE, include = TRUE}
 #load libraries ----
 library(dplyr)
 library(stringr)
@@ -74,6 +74,7 @@ library(gt)
 library(scales)
 library(htmltools)
 library(tippy)
+library(reactablefmtr)
 #installed from Github using devtools 
 # devtools::install_github("jcheng5/d3scatter")
 # devtools::install_github("kent37/summarywidget")
@@ -82,7 +83,7 @@ library(summarywidget)
 ```
 
 <!-- ## Pre-process dataset -->
-```{r dataset, message=FALSE, include = FALSE}
+```{r dataset, message=FALSE, include = TRUE}
 #define dataset ----
 # specify order of interest
 gtcars_mod <- gt::gtcars %>% 
@@ -90,9 +91,11 @@ gtcars_mod <- gt::gtcars %>%
   dplyr::relocate(ctry_origin, .after = year) %>%
   dplyr::relocate(bdy_style, .after = msrp) %>%
   dplyr::relocate(drivetrain, .after = bdy_style) %>%
-  dplyr::relocate(trsmn, .after = drivetrain) %>%
+  dplyr::relocate(hp_rpm, .after = trsmn) %>%
+  dplyr::relocate(trq_rpm, .after = trsmn) %>%
   mutate(ctry_origin = ifelse(ctry_origin == "United States", "United States of America", ctry_origin))
-data <- SharedData$new(gtcars_mod) 
+
+data <- SharedData$new(gtcars_mod)
 ```
 
 <!-- ## Helper functions and themes -->
@@ -140,8 +143,8 @@ example_theme <- reactableTheme(
 #setup crosstalk widgets ----
 bscols(widths = c(3, 8, 12, 12),
        list(
-         filter_select("mfr", "Manufacturer", data, ~unique(gtcars$mfr)),
-         filter_select("model", "Model", data, ~unique(gtcars$model)),
+         filter_select("mfr", "Manufacturer", data, ~unique(gtcars_mod$mfr)),
+         filter_select("model", "Model", data, ~unique(gtcars_mod$model)),
          filter_slider("year", "Year", data, ~year, width = "80%", sep = "", animate=FALSE),
          filter_slider("hp", "Horsepower", data, ~hp, width = "90%"),
          filter_checkbox("bdy_style", "Body Style", data, ~bdy_style, inline = TRUE),
@@ -173,13 +176,14 @@ bscols(widths = c(3, 8, 12, 12),
                             '<div style=\"font-size: 12px\">' + model + '</div>' +
                             '</div>'
                           )
-                        }"), header=with_tooltip("mfr", "Manufacturer/model name"),
+                        }"), header=with_tooltip("model", "Manufacturer/model name"),
                         footer = "Total",
                         html = TRUE),
                      model = colDef(show = FALSE),
                       # mfr = colDef(header=with_tooltip("mfr", "Manufacturer")),
                       # model = colDef(header= with_tooltip("model",	"Model name")),
-                      year = colDef(header= with_tooltip("year",	"Model year"), minWidth = 60),
+                      year = colDef(header= with_tooltip("year",	"Model year"), minWidth = 60,
+                                    cell = reactablefmtr::icon_sets(gtcars_mod, icon_size = 18, icons = "clock", color = "lightgrey")),
                       trim = colDef(header= with_tooltip("trim",	"Dscription of the car model's trim"),
                                     style = list(fontWeight = 600)
                                     ),
@@ -195,23 +199,20 @@ bscols(widths = c(3, 8, 12, 12),
                                     width <- paste0(value / max(gtcars_mod$hp, na.rm=TRUE) * 100, "%")
                                     bar_chart(value, width = width, fill = "#A0522D", background = "#e1e1e1")
                                     }),
-                      hp_rpm = colDef(header= with_tooltip("hp_rpm",	"Horsepower RPM level"), format=colFormat(separators = TRUE) ),
+                      hp_rpm = colDef(header= with_tooltip("hp_rpm",	"Horsepower associated RPM level"), format=colFormat(separators = TRUE),
+                                      cell = icon_sets(gtcars_mod, icons = "tachometer-alt")),
                       trq = colDef(header= with_tooltip("trq",	"Torque"),
                                    cell = function(value) {
                                     width <- paste0(value / max(gtcars_mod$trq, na.rm=TRUE) * 100, "%")
                                     bar_chart(value, width = width, fill = "#DDA0DD", background = "#e1e1e1")
                                     }),
-                      trq_rpm = colDef(header= with_tooltip("trq_rpm",	"Torque RPM level"), format=colFormat(separators = TRUE) ),
+                      trq_rpm = colDef(header= with_tooltip("trq_rpm",	"Torque associated RPM level"), format=colFormat(separators = TRUE),
+                                      cell = icon_sets(gtcars_mod, icons = "tachometer-alt")),
                       mpg_c = colDef(header= with_tooltip("mpg_c",	"Miles per gallon fuel efficiency city"),
-                                     cell = function(value) {
-                                       width <- paste0(value / max(gtcars_mod$mpg_c, na.rm=TRUE) * 100, "%")
-                                       bar_chart(value, width = width, background = "#e1e1e1")
-                                       }),
+                                     cell = reactablefmtr::icon_sets(gtcars_mod, icon_size = 18, icons = "gas-pump", colors = c("#ee9090", "grey", "#90ee90"))),
                       mpg_h = colDef(header= with_tooltip("mpg_h",	"Miles per gallon fuel efficiency highway"),
-                                     cell = function(value) {
-                                       width <- paste0(value / max(gtcars_mod$mpg_h, na.rm=TRUE) * 100, "%")
-                                       bar_chart(value, width = width, fill = "#fc5185", background = "#e1e1e1")
-                                       }),
+                                      cell = reactablefmtr::icon_sets(gtcars_mod, icon_size = 18, icons = "gas-pump", colors = c("#ee9090", "grey", "#90ee90"))
+                                     ),
                       drivetrain = colDef(header= with_tooltip("drivetrain",	"Car's drivetrain"),
                                      cell = function(value) {
                                            class <- paste0("tag drivetrain-", tolower(value))
@@ -240,7 +241,11 @@ bscols(widths = c(3, 8, 12, 12),
                       msrp = colDef(header = with_tooltip("msrp",	"Car prices in USD"), 
                                    format = colFormat(separators = TRUE, digits = 0, prefix = "$"), 
                                    minWidth = 120,
-                                   cell = function(value) div(scales::dollar(value), rating_msrp(value), width = "100%"),
+                                   # cell = function(value) div(scales::dollar(value), rating_msrp(value), width = "100%"),
+                                   cell = reactablefmtr::icon_assign(gtcars_mod, icon = "dollar-sign", fill_color = "darkgreen", 
+                                                      empty_color = "lightgrey", buckets = 5, show_values = "right", 
+                                                      icon_size = 13,
+                                                      number_fmt = scales::dollar),
                                    footer = function(values) scales::dollar(sum(values) )
                                    )
                  ),
@@ -249,10 +254,6 @@ bscols(widths = c(3, 8, 12, 12),
        # DT::datatable(data)
 )
 ```
-
-<!-- # Setup Crosstalk -->
-<!-- You have selected `r summarywidget(data, statistic = 'count')` car -->
-<!-- with an average horsepower of **`r summarywidget(data, 'mean', 'hp', digits=1)`** , an average city mpg of **`r summarywidget(data, 'mean', 'mpg_c', digits=1)`** , and an average highway mpg of **`r summarywidget(data, 'mean', 'mpg_h', digits=1)`** -->
 
 ```{r, crosstalk1, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 ```
