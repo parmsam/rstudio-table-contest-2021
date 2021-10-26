@@ -200,7 +200,7 @@ bscols(widths = c(3, 8, 12, 12),
                                     bar_chart(value, width = width, fill = "#A0522D", background = "#e1e1e1")
                                     }),
                       hp_rpm = colDef(header= with_tooltip("hp_rpm",	"Horsepower associated RPM level"), format=colFormat(separators = TRUE),
-                                      cell = icon_sets(gtcars_mod, icons = "tachometer-alt")),
+                                      cell = icon_sets(gtcars_mod, icons = "horse")),
                       trq = colDef(header= with_tooltip("trq",	"Torque"),
                                    cell = function(value) {
                                     width <- paste0(value / max(gtcars_mod$trq, na.rm=TRUE) * 100, "%")
