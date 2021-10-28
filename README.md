@@ -1,6 +1,6 @@
 # rstudio-table-contest-2021
 
-## Title
+## Title/Subtitle
 ### Interactivity with the deluxe cars dataset
 
 #### an interactive table using crosstalk + reactable on the gtcars dataset
