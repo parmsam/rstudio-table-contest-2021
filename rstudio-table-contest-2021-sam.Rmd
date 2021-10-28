@@ -2,7 +2,7 @@
 title: <span style="color:darkorange">Interactivity with the deluxe cars dataset</span>
 subtitle: | 
  | an interactive table using crosstalk + reactable on the gtcars dataset</span>
- | [RStudio Table Contest 2021](https://blog.rstudio.com/2021/09/30/rstudio-table-contest-2021/)
+ | for the [RStudio Table Contest 2021](https://blog.rstudio.com/2021/09/30/rstudio-table-contest-2021/)
 author: "Sam's [github](https://github.com/parmsam) & [blog](https://parmsam.medium.com/)"
 output:
   html_document:
